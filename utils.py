@@ -1,0 +1,140 @@
+import torch
+import torch.nn as nn
+import copy
+import torch.optim as optim
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
+import numpy as np
+import sys, os
+from torch.utils.data import DataLoader
+
+def running_model_avg(current, next, scale):
+    if current == None:
+        current = next
+        for key in current:
+            current[key] = current[key] * scale
+    else:
+        for key in current:
+            current[key] = current[key] + (next[key] * scale)
+    return current
+
+def running_uefl_avg(current, next, scale):
+    if current == None:
+        current = next
+        for key in current:
+            if 'vq_list' in key:
+                continue
+            current[key] = current[key] * scale
+    else:
+        for key in current:
+            if 'vq_list' in key:
+                continue
+            current[key] = current[key] + (next[key] * scale)
+    return current
+
+def validate(test_loader, model, device, args, net_idx):
+    model = model.to(device)
+    model.eval()
+    criterion = nn.CrossEntropyLoss()
+    correct, total = 0.0, 0.0
+    test_loss, test_vqloss, test_ppl = 0.0, 0.0, 0.0
+    if args.data == 'cifar100':
+        prediction = np.empty((0, 100))
+    elif args.data == 'gtsrb':
+        prediction = np.empty((0, 43))
+    else:
+        prediction = np.empty((0, 10))
+
+    with torch.no_grad():
+        for xte, yte in test_loader:
+            xte = xte.to(device)
+            B, C, H, W = xte.shape
+            pte, vqloss, ppl = model(xte, net_idx)
+            test_vqloss += vqloss.item()
+            test_ppl += ppl.item()
+
+            lte = criterion(pte.cpu(), yte)
+            prediction = np.append(prediction, F.softmax(pte, dim=1).cpu(), axis=0)
+            cls = torch.argmax(pte.cpu(), axis=1)
+            correct += torch.eq(cls, yte.cpu()).sum().item()
+            total += xte.shape[0]
+            test_loss += lte.item()
+    return test_loss/len(test_loader), correct/total, prediction, test_vqloss/len(test_loader), test_ppl/len(test_loader)
+
+def silo_training(train_loader, test_loader, model, device, args, lr, net_idx, init=False):
+    localmodel = copy.deepcopy(model)
+    localmodel = localmodel.to(device)
+    
+    optimizer = optim.Adam(localmodel.parameters(), lr=lr)
+    criterion = nn.CrossEntropyLoss()
+    
+    loss_tr = []
+    train_loss = 0.0
+    if init:
+        localmodel.init_codebooks(train_loader, net_idx, device) # locally initialize the codebooks with kmeans
+
+    for e in range(args.epoch):
+        localmodel.train()
+        for xtr, ytr in train_loader:
+            xtr, ytr = xtr.to(device), ytr.to(device)
+            B, C, H, W = xtr.shape
+
+            optimizer.zero_grad()
+            ptr, train_vqloss, train_ppl = localmodel(xtr, net_idx)
+            ltr = criterion(ptr, ytr)+train_vqloss
+            ltr.backward(retain_graph=True)
+            optimizer.step()
+            train_loss += ltr.item()
+        
+        test_loss, acc, pred, vqloss, ppl = validate(test_loader, localmodel, device, args, net_idx)
+        loss_tr.append(test_loss/len(test_loader))
+        train_loss = 0.0
+    return localmodel, test_loss, acc, vqloss, ppl
+
+def plot_lc(data, t, title):
+    x = np.arange(t)+1
+    data = np.asarray(data).T
+    num_silo = data.shape[0]
+    if num_silo == 5:
+        plt.figure()
+        plt.plot(x, data[0], label='silo 1a')
+        plt.plot(x, data[1], label='silo 1b')
+        plt.plot(x, data[2], label='silo 1c')
+        plt.plot(x, data[3], label='silo 2a')
+        plt.plot(x, data[4], label='silo 3a')
+        plt.legend()
+        plt.xlabel('round')
+        plt.ylabel(title.split('_')[-1])
+        folder = title.split('/')[2]
+        ttl = folder.split('_')[0]
+        plt.title(ttl.upper())
+        plt.savefig(title)
+        plt.close()
+    elif num_silo == 9:
+        plt.figure()
+        plt.plot(x, data[0], label='silo 1a')
+        plt.plot(x, data[1], label='silo 1b')
+        plt.plot(x, data[2], label='silo 1c')
+        plt.plot(x, data[3], label='silo 2a')
+        plt.plot(x, data[4], label='silo 2b')
+        plt.plot(x, data[5], label='silo 2c')
+        plt.plot(x, data[6], label='silo 3a')
+        plt.plot(x, data[7], label='silo 3b')
+        plt.plot(x, data[8], label='silo 3c')
+        plt.legend()
+        plt.xlabel('round')
+        plt.ylabel(title.split('_')[-1])
+        folder = title.split('/')[2]
+        ttl = folder.split('_')[0]
+        plt.title(ttl.upper())
+        plt.savefig(title)
+        plt.close()
+
+def plot_metrics(data_list, t, title_list):
+    for i in range(len(data_list)):
+        plot_lc(data_list[i], t, title_list[i])
+
+def entropy(preds):
+    epsilon = sys.float_info.min
+    entropy = -np.sum(np.mean(preds, axis=0)*np.log(np.mean(preds, axis=0)+epsilon), axis=-1)
+    return entropy
