@@ -1,4 +1,4 @@
-# Uncertainty-based Extensible-codebook Federated Learning
+# Uncertainty-Based Extensible Codebook for Discrete Federated Learning in Heterogeneous Data Silos
 
 
 ## Abstract
@@ -8,6 +8,7 @@ Federated learning, aimed at leveraging vast datasets distributed across numerou
 
 ## Updates
 '02/18/2024'
+
     1. Source codes are released.
 
 ## Data
