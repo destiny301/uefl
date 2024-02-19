@@ -2,14 +2,14 @@
 
 
 ## Abstract
-Federated learning, aimed at leveraging vast datasets distributed across numerous locations and devices, confronts a crucial challenge: the heterogeneity of data across different silos. While previous studies have explored discrete representations to enhance model generalization across minor distributional shifts, these approaches often struggle to adapt to new data silos with significantly divergent distributions. In response, we have identified that models derived from federated training exhibit markedly increased uncertainty when applied to data silos with unfamiliar distributions. Consequently, we propose an innovative yet straightforward iterative framework, termed 'Uncertainty-Based Extensible-Codebook Federated Learning (UEFL)'. This framework dynamically maps latent features to trainable discrete vectors, assesses the uncertainty, and specifically extends the discretization dictionary or codebook for silos exhibiting high uncertainty. Our approach aims to simultaneously enhance accuracy and reduce uncertainty by explicitly addressing the diversity of data distributions, all while maintaining minimal computational overhead in environments characterized by heterogeneous data silos. Through experiments conducted on five well-known datasets, our method has demonstrated its superiority, achieving significant improvements in accuracy (by 3\%--22.1\%) and uncertainty reduction (by 38.83\%--96.24\%), thereby outperforming contemporary state-of-the-art methods.
+Federated learning, aimed at leveraging vast datasets distributed across numerous locations and devices, confronts a crucial challenge: the heterogeneity of data across different silos. While previous studies have explored discrete representations to enhance model generalization across minor distributional shifts, these approaches often struggle to adapt to new data silos with significantly divergent distributions. In response, we have identified that models derived from federated training exhibit markedly increased uncertainty when applied to data silos with unfamiliar distributions. Consequently, we propose an innovative yet straightforward iterative framework, termed *Uncertainty-Based Extensible-Codebook Federated Learning (UEFL)*. This framework dynamically maps latent features to trainable discrete vectors, assesses the uncertainty, and specifically extends the discretization dictionary or codebook for silos exhibiting high uncertainty. Our approach aims to simultaneously enhance accuracy and reduce uncertainty by explicitly addressing the diversity of data distributions, all while maintaining minimal computational overhead in environments characterized by heterogeneous data silos. Through experiments conducted on five well-known datasets, our method has demonstrated its superiority, achieving significant improvements in accuracy (by 3\%--22.1\%) and uncertainty reduction (by 38.83\%--96.24\%), thereby outperforming contemporary state-of-the-art methods.
 
 ![image](https://github.com/destiny301/uefl/blob/main/flowchart.png)
 
 ## Updates
-'02/18/2024'
+*02/18/2024*
 
-    1. Source codes are released.
+1. Source codes are released.
 
 ## Data
 Prepare the data as the following structure:
