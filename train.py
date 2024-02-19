@@ -206,11 +206,11 @@ def main(args):
             global_ppls.append(np.mean(global_ppl, 0))
             entropys.append(np.mean(ent, 1))
         
-        plot_lc(global_accs, args.round+iteration*args.round_iter2, os.path.join(results_folder, 'learning curve_global_Accuracy'))
-        plot_lc(global_losses, args.round+iteration*args.round_iter2, os.path.join(results_folder, 'learning curve_global_TestLoss'))
-        plot_lc(global_vqlosses, args.round+iteration*args.round_iter2, os.path.join(results_folder, 'learning curve_global_VQLoss'))
-        plot_lc(global_ppls, args.round+iteration*args.round_iter2, os.path.join(results_folder, 'learning curve_global_Perplexity'))
-        plot_lc(entropys, args.round+iteration*args.round_iter2, os.path.join(results_folder, 'learning curve_Entropy'))
+        plot_lc(global_accs, args.round+iteration*args.round_plus, os.path.join(results_folder, 'learning curve_global_Accuracy'))
+        plot_lc(global_losses, args.round+iteration*args.round_plus, os.path.join(results_folder, 'learning curve_global_TestLoss'))
+        plot_lc(global_vqlosses, args.round+iteration*args.round_plus, os.path.join(results_folder, 'learning curve_global_VQLoss'))
+        plot_lc(global_ppls, args.round+iteration*args.round_plus, os.path.join(results_folder, 'learning curve_global_Perplexity'))
+        plot_lc(entropys, args.round+iteration*args.round_plus, os.path.join(results_folder, 'learning curve_Entropy'))
 
         # uncertainty evaluation
         etp = entropys[-1]

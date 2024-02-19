@@ -5,10 +5,12 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import numpy as np
-import sys, os
-from torch.utils.data import DataLoader
+import sys
 
 def running_model_avg(current, next, scale):
+    """
+    average of the model parameters
+    """
     if current == None:
         current = next
         for key in current:
@@ -19,6 +21,9 @@ def running_model_avg(current, next, scale):
     return current
 
 def running_uefl_avg(current, next, scale):
+    """
+    compute the average of the model parameters, except for the codebooks
+    """
     if current == None:
         current = next
         for key in current:
@@ -33,6 +38,9 @@ def running_uefl_avg(current, next, scale):
     return current
 
 def validate(test_loader, model, device, args, net_idx):
+    """
+    validate model on test set
+    """
     model = model.to(device)
     model.eval()
     criterion = nn.CrossEntropyLoss()
@@ -62,6 +70,9 @@ def validate(test_loader, model, device, args, net_idx):
     return test_loss/len(test_loader), correct/total, prediction, test_vqloss/len(test_loader), test_ppl/len(test_loader)
 
 def silo_training(train_loader, test_loader, model, device, args, lr, net_idx, init=False):
+    """
+    local training for each silo
+    """
     localmodel = copy.deepcopy(model)
     localmodel = localmodel.to(device)
     
@@ -92,6 +103,9 @@ def silo_training(train_loader, test_loader, model, device, args, lr, net_idx, i
     return localmodel, test_loss, acc, vqloss, ppl
 
 def plot_lc(data, t, title):
+    """
+    plot learning curve for different metrics
+    """
     x = np.arange(t)+1
     data = np.asarray(data).T
     num_silo = data.shape[0]
@@ -131,10 +145,16 @@ def plot_lc(data, t, title):
         plt.close()
 
 def plot_metrics(data_list, t, title_list):
+    """
+    plot learning curve for all metrics
+    """
     for i in range(len(data_list)):
         plot_lc(data_list[i], t, title_list[i])
 
 def entropy(preds):
+    """
+    compute entropy based on predictions
+    """
     epsilon = sys.float_info.min
     entropy = -np.sum(np.mean(preds, axis=0)*np.log(np.mean(preds, axis=0)+epsilon), axis=-1)
     return entropy
