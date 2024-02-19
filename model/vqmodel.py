@@ -128,9 +128,10 @@ class VectorQuantizerEMA(nn.Module):
 
 class extVQ(nn.Module):
     """
-    use codebooks based on the silo_kind:
-        if silo_kind (num_book) = 0: only shared codebook
-        else: shared codebook + additional codebook
+    Extensible codebook:
+        use codebooks based on the silo_kind:
+            if silo_kind (num_book) = 0: only shared codebook
+            else: shared codebook + additional codebook
     """
     def __init__(self, num_embeddings, embedding_dim, commitment_cost, silo_kinds):
         super(extVQ, self).__init__()
@@ -226,26 +227,6 @@ class UEFL(nn.Module):
         else:
             output_dim = 10
         self.classifier = Mlp(in_features=ch, hidden_features=512, out_features=output_dim)
-    
-    # global codebook initialization
-    def global_init_codebooks(self, dsloader, idx, device):    
-        # obatin features for all input data
-        feas = []
-        with torch.no_grad():
-            for ds in dsloader:
-                for xtr, ytr in ds:
-                    xtr, ytr = xtr.to(device), ytr.to(device)
-                    fea = self.encoder(xtr)
-                    feas.append(fea.detach())
-
-            feas = torch.concat(feas, dim=0)
-            feas = feas.permute(0, 2, 3, 1).contiguous()
-            # [B, H, W, C] -> [BHW, C]
-            feas = feas.reshape(-1, self.dim)
-
-            # initialize codebooks
-            kmeans = KMeans(n_clusters=self.num_embeddings, random_state=0, n_init="auto").fit(feas.cpu().numpy())
-            self.vq_list.embeddings_list[idx].weight.data = torch.from_numpy(kmeans.cluster_centers_).to(device)
 
     # initialize codebooks with kmeans on local data
     def init_codebooks(self, dsloader, idx, device):

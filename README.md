@@ -7,6 +7,8 @@ Federated learning, aimed at leveraging vast datasets distributed across numerou
 ![image](https://github.com/destiny301/uefl/blob/main/flowchart.png)
 
 ## Updates
+'02/18/2024'
+    1. Source codes are released.
 
 ## Data
 Prepare the data as the following structure:
@@ -23,6 +25,11 @@ datasets/
 ### MNIST with 9 silos
 ```shell
 python train.py --data mnist --num_silo 9 --num_dist 3 --sample 2000 --enocder cnn --depth 3 --num_codes 64 --seg 1 --round 20 --epoch 20 --step 20 --thd 0.1 --workdir /your/save/folder
+```
+
+### MNIST with 5 silos (unbalanced)
+```shell
+python train.py --data mnist --num_silo 5 --num_dist 3 --sample 2000 --enocder cnn --depth 3 --num_codes 64 --seg 1 --round 20 --epoch 20 --step 20 --thd 0.1 --workdir /your/save/folder
 ```
 To obtain the best performance, please use pretrained model on large image dataset
 

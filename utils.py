@@ -7,19 +7,6 @@ import torch.nn.functional as F
 import numpy as np
 import sys
 
-def running_model_avg(current, next, scale):
-    """
-    average of the model parameters
-    """
-    if current == None:
-        current = next
-        for key in current:
-            current[key] = current[key] * scale
-    else:
-        for key in current:
-            current[key] = current[key] + (next[key] * scale)
-    return current
-
 def running_uefl_avg(current, next, scale):
     """
     compute the average of the model parameters, except for the codebooks
@@ -102,7 +89,7 @@ def silo_training(train_loader, test_loader, model, device, args, lr, net_idx, i
         train_loss = 0.0
     return localmodel, test_loss, acc, vqloss, ppl
 
-def plot_lc(data, t, title):
+def plot_lc(data, t, savepath):
     """
     plot learning curve for different metrics
     """
@@ -118,11 +105,11 @@ def plot_lc(data, t, title):
         plt.plot(x, data[4], label='silo 3a')
         plt.legend()
         plt.xlabel('round')
-        plt.ylabel(title.split('_')[-1])
-        folder = title.split('/')[2]
-        ttl = folder.split('_')[0]
+        plt.ylabel(savepath.split('_')[-1])
+        folder = savepath.split('/')[2]
+        ttl = folder.split('_')[0]  # figure title
         plt.title(ttl.upper())
-        plt.savefig(title)
+        plt.savefig(savepath)
         plt.close()
     elif num_silo == 9:
         plt.figure()
@@ -137,19 +124,19 @@ def plot_lc(data, t, title):
         plt.plot(x, data[8], label='silo 3c')
         plt.legend()
         plt.xlabel('round')
-        plt.ylabel(title.split('_')[-1])
-        folder = title.split('/')[2]
-        ttl = folder.split('_')[0]
+        plt.ylabel(savepath.split('_')[-1])
+        folder = savepath.split('/')[2]
+        ttl = folder.split('_')[0] # figure title
         plt.title(ttl.upper())
-        plt.savefig(title)
+        plt.savefig(savepath)
         plt.close()
 
-def plot_metrics(data_list, t, title_list):
+def plot_metrics(data_list, t, savepath_list):
     """
     plot learning curve for all metrics
     """
     for i in range(len(data_list)):
-        plot_lc(data_list[i], t, title_list[i])
+        plot_lc(data_list[i], t, savepath_list[i])
 
 def entropy(preds):
     """
