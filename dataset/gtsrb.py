@@ -10,7 +10,6 @@ class GTSRB_silo(Dataset):
     """
     def __init__(self, root, args, folder, silo):
         super().__init__()
-        self.weak = args.weak
         self.noise = args.noise
         self.num_silo = args.num_silo
         datadir = '../datasets/GTSRB'

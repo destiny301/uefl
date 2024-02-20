@@ -140,7 +140,7 @@ def main(args):
         etp = np.asarray(etp)
         # compute threshold
         if iteration == 1:
-            benchmark = etp.mean() # use mean or min as the benchmark
+            benchmark = etp.min() if args.min else etp.mean() # use mean or min as the benchmark
             threshold = (1+args.thd) * benchmark
 
     print('#########################################################=============Done!=============#########################################################')
@@ -174,6 +174,7 @@ if __name__ == '__main__':
     argparser.add_argument('--lr', type=float, help='learning rate', default=10e-5)
     argparser.add_argument('--gamma', type=float, help='vq loss weight', default=0.1)
     argparser.add_argument('--thd', type=float, help='threshold for uncertainty evaluation', default=0.1)
+    argparser.add_argument('--min', action='store_true', help='whether use minimum uncertainty as the threshold or not')
     argparser.add_argument('--workdir', type=str, help='cuda device or cpu', default='mnist_s9d3s2000_c256r20+10e20s20')
     args = argparser.parse_args()
     main(args)
