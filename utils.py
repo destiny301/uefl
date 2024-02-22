@@ -14,12 +14,12 @@ def running_uefl_avg(current, next, scale):
     if current == None:
         current = next
         for key in current:
-            if 'vq_list' in key:
+            if 'discretizer' in key:
                 continue
             current[key] = current[key] * scale
     else:
         for key in current:
-            if 'vq_list' in key:
+            if 'discretizer' in key:
                 continue
             current[key] = current[key] + (next[key] * scale)
     return current
@@ -43,7 +43,6 @@ def validate(test_loader, model, device, args, net_idx):
     with torch.no_grad():
         for xte, yte in test_loader:
             xte = xte.to(device)
-            B, C, H, W = xte.shape
             pte, vqloss, ppl = model(xte, net_idx)
             test_vqloss += vqloss.item()
             test_ppl += ppl.item()
@@ -56,7 +55,7 @@ def validate(test_loader, model, device, args, net_idx):
             test_loss += lte.item()
     return test_loss/len(test_loader), correct/total, prediction, test_vqloss/len(test_loader), test_ppl/len(test_loader)
 
-def silo_training(train_loader, test_loader, model, device, args, lr, net_idx, init=False):
+def silo_training(train_loader, test_loader, model, device, args, lr, net_idx, init_and_ext=False):
     """
     local training for each silo
     """
@@ -68,17 +67,17 @@ def silo_training(train_loader, test_loader, model, device, args, lr, net_idx, i
     
     loss_tr = []
     train_loss = 0.0
-    if init:
+    if init_and_ext:
         localmodel.init_codebooks(train_loader, net_idx, device) # locally initialize the codebooks with kmeans
 
     for e in range(args.epoch):
         localmodel.train()
         for xtr, ytr in train_loader:
             xtr, ytr = xtr.to(device), ytr.to(device)
-            B, C, H, W = xtr.shape
 
             optimizer.zero_grad()
-            ptr, train_vqloss, train_ppl = localmodel(xtr, net_idx)
+            ptr, train_vqloss, train_ppl = localmodel(xtr, net_idx, ext=init_and_ext)
+            init_and_ext = False # reset extension flag after extending the codebooks, extend only once for each silo
             ltr = criterion(ptr, ytr)+train_vqloss
             ltr.backward(retain_graph=True)
             optimizer.step()

@@ -130,7 +130,7 @@ class extVQ(nn.Module):
     """
     Extensible codebook:
         use codebooks based on the silo_kind:
-            if silo_kind (num_book) = 0: only shared codebook
+            if silo_kind (book_index) = 0: only shared codebook
             else: shared codebook + additional codebook
     """
     def __init__(self, num_embeddings, embedding_dim, commitment_cost, silo_kinds):
@@ -139,14 +139,19 @@ class extVQ(nn.Module):
         self._embedding_dim = embedding_dim
         self._num_embeddings = num_embeddings
         
-        self.embeddings_list = nn.ModuleList(
-            [nn.Embedding(self._num_embeddings, self._embedding_dim) for i in range(silo_kinds)] # initialize multiple codebooks (default: 3)
-        )
-        for i in range(silo_kinds):
-            self.embeddings_list[i].weight.data.normal_()
+        # initialize a single codebook
+        self.embed = nn.Embedding(self._num_embeddings, self._embedding_dim)
+        self.embed.weight.data.normal_()
+        
+        # initialize extensible codebook
+        self.embeddings = [] # all codewords
+        self.embeddings.append(self.embed) # shared codebook
+        self.embeddings.append(self.embed)  # append an additional backup codebook for Kmeans initialization
+        self.codebooks = nn.ModuleList(self.embeddings) # extensible codebook
+
         self._commitment_cost = commitment_cost
 
-    def forward(self, inputs, idx):
+    def forward(self, inputs, idx, ext=False):
         """
         idx: the index of data distribution
         """
@@ -157,17 +162,19 @@ class extVQ(nn.Module):
         # Flatten input
         flat_input = inputs.view(-1, self._embedding_dim)
         
+        # extend codebook (append a new codebook for next Kmeans initialization)
+        if ext:
+            self.codebooks.append(self.embed)
+
+        # accessible codewords for different silos
         if idx == 0:
-            # Calculate distances
-            codes = self.embeddings_list[0].weight
-        elif idx == 1:
-            # Calculate distances with embedding_0 and embedding_1
-            codes = torch.cat((self.embeddings_list[0].weight, self.embeddings_list[1].weight), dim=0)
+            # use only shared codebook
+            codes = self.codebooks[0].weight
         else:
-            # Calculate distances with embedding_0 and embedding_2
-            codes = torch.cat((self.embeddings_list[0].weight, self.embeddings_list[2].weight), dim=0)
+            # Calculate distances with shared codebook and additional codebook
+            codes = torch.cat((self.codebooks[0].weight, self.codebooks[idx].weight), dim=0)
             
-        # Calculate distances
+        # Calculate distances to accessible codewords
         distances = (
             torch.sum(flat_input ** 2, dim=1, keepdim=True) +
             torch.sum(codes ** 2, dim=1) -
@@ -217,7 +224,7 @@ class UEFL(nn.Module):
         self.dim = self.dim//seg
         
         # entensible codebook
-        self.vq_list = extVQ(num_embeddings=self.num_embeddings, embedding_dim=self.dim, commitment_cost=0.25, silo_kinds=silo_kinds)
+        self.discretizer = extVQ(num_embeddings=self.num_embeddings, embedding_dim=self.dim, commitment_cost=0.25, silo_kinds=silo_kinds)
         
         # number of classes for different datasets
         if data == "cifar100":
@@ -228,11 +235,10 @@ class UEFL(nn.Module):
             output_dim = 10
         self.classifier = Mlp(in_features=ch, hidden_features=512, out_features=output_dim)
 
-    # initialize codebooks with kmeans on local data
+    # initialize the additional codebooks with kmeans on local data
     def init_codebooks(self, dsloader, idx, device):
         feas = []
         # obatin features for all input data
-        # if idx == 0: # main codes
         with torch.no_grad():
             for xtr, ytr in dsloader:
                 xtr, ytr = xtr.to(device), ytr.to(device)
@@ -246,28 +252,33 @@ class UEFL(nn.Module):
 
             # initialize codebooks
             kmeans = KMeans(n_clusters=self.num_embeddings, random_state=0, n_init="auto").fit(feas.cpu().numpy())
-            self.vq_list.embeddings_list[idx].weight.data = torch.from_numpy(kmeans.cluster_centers_).to(device)
+            self.discretizer.codebooks[idx].weight.data = torch.from_numpy(kmeans.cluster_centers_).to(device)
     
     # return codebooks
     def get_codebooks(self):
         codebooks = []
-        for i in range(len(self.vq_list.embeddings_list)):
-            codebooks.append(self.vq_list.embeddings_list[i].weight)
+        for i in range(len(self.discretizer.codebooks)):
+            codebooks.append(self.discretizer.codebooks[i].weight)
         return codebooks
     
     # load codebooks
     def load_codebooks(self, codebooks):
-        for i in range(len(self.vq_list.embeddings_list)):
-            self.vq_list.embeddings_list[i].weight.data = codebooks[i]
+        for i in range(len(self.discretizer.codebooks)):
+            self.discretizer.codebooks[i].weight.data = codebooks[i]
+
+    # extend codebook capacity
+    def extend_codebooks(self, iteration):
+        if iteration > 1:
+            self.discretizer.codebooks.append(self.discretizer.embed)
                         
-    def forward(self, x, idx):
+    def forward(self, x, idx, ext=False):
         '''
-        if idx (num_book) = 0: only shared codebook
+        if idx (book_index) = 0: only shared codebook
         else: shared codebook + additional codebook
         '''
         fea = self.encoder(x)
 
-        q_fea, loss, ppl = self.vq_list(fea, idx)
+        q_fea, loss, ppl = self.discretizer(fea, idx, ext)
         q_fea = q_fea.flatten(1)
         # decoder with quantized vectors
         output = self.classifier(q_fea)

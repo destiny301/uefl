@@ -72,8 +72,8 @@ def main(args):
                 if r>0:
                     mainmodel.load_codebooks(codebooks[s])
                 # train local model for each silo, locally initialize the model if it's the first round of additional iterations with Kmeans
-                init_flag = True if r == 0 and iteration > 1 else False
-                localmodel, test_loss, acc, vqloss, ppl  = silo_training(train_loader, test_loader, mainmodel, device, args, lr, book_idx[s], init=init_flag)
+                init_and_ext_flag = True if r == 0 and iteration > 1 else False
+                localmodel, test_loss, acc, vqloss, ppl  = silo_training(train_loader, test_loader, mainmodel, device, args, lr, book_idx[s], init_and_ext=init_and_ext_flag)
                 # update local codebooks
                 if r == 0:
                     codebooks.append(localmodel.get_codebooks())
@@ -84,6 +84,8 @@ def main(args):
                 
                 if r%10 == 0:
                     print('silo {}_local: \ttest loss:{:.4f} \tvq loss:{:.4f} \taccuracy:{:.4f} \tperplexity:{:.4f}'.format(s+1, test_loss, vqloss, acc, ppl))
+            if r == 0:
+                mainmodel.extend_codebooks(iteration) # extend the codewords capacity for the global model, extend once for each iteration
             mainmodel.load_state_dict(avg_model)
 
             ########### evaluation ###########
