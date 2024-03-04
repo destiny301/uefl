@@ -168,7 +168,7 @@ if __name__ == '__main__':
     # training
     argparser.add_argument('--dev', type=str, help='cuda device or cpu', default='cuda:0')
     argparser.add_argument('--round', type=int, help='number of federated learning rounds', default=20) # 10, 20, or 50
-    argparser.add_argument('--round_plus', type=int, help='number of additional rounds', default=10) # 5, 10
+    argparser.add_argument('--round_plus', type=int, help='number of additional rounds', default=10) # 5
     argparser.add_argument('--epoch', type=int, help='number of local training epochs', default=20) # 5, 10 or 20
     argparser.add_argument('--step', type=int, help='inference times for uncertainty', default=20)
     argparser.add_argument('--batchsz', type=int, help='local batch size', default=1024)

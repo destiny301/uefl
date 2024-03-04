@@ -146,7 +146,7 @@ class extVQ(nn.Module):
         # initialize extensible codebook
         self.embeddings = [] # all codewords
         self.embeddings.append(self.embed) # shared codebook
-        self.embeddings.append(self.embed)  # append an additional backup codebook for Kmeans initialization
+        self.embeddings.append(nn.Embedding(self._num_embeddings, self._embedding_dim))  # append an additional backup codebook for Kmeans initialization
         self.codebooks = nn.ModuleList(self.embeddings) # extensible codebook
 
         self._commitment_cost = commitment_cost
@@ -164,7 +164,7 @@ class extVQ(nn.Module):
         
         # extend codebook (append a new codebook for next Kmeans initialization)
         if ext:
-            self.codebooks.append(self.embed)
+            self.codebooks.append(nn.Embedding(self._num_embeddings, self._embedding_dim))
 
         # accessible codewords for different silos
         if idx == 0:
@@ -269,7 +269,7 @@ class UEFL(nn.Module):
     # extend codebook capacity
     def extend_codebooks(self, iteration):
         if iteration > 1:
-            self.discretizer.codebooks.append(self.discretizer.embed)
+            self.discretizer.codebooks.append(nn.Embedding(self.num_embeddings, self.dim))
                         
     def forward(self, x, idx, ext=False):
         '''
