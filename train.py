@@ -131,11 +131,12 @@ def main(args):
             entropys.append(np.mean(ent, 1))
             # torch.save(mainmodel.state_dict(), modelpath)
         
-        plot_lc(global_accs, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_global_Accuracy')) # accuracy
-        plot_lc(global_losses, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_global_TestLoss')) # test loss
-        plot_lc(global_vqlosses, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_global_VQLoss')) # vq codebook loss
-        plot_lc(global_ppls, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_global_Perplexity')) # perplexity
-        plot_lc(entropys, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_Entropy')) # uncertainty
+        if args.plot:
+            plot_lc(global_accs, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_global_Accuracy')) # accuracy
+            plot_lc(global_losses, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_global_TestLoss')) # test loss
+            plot_lc(global_vqlosses, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_global_VQLoss')) # vq codebook loss
+            plot_lc(global_ppls, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_global_Perplexity')) # perplexity
+            plot_lc(entropys, args.round+(iteration-1)*args.round_plus, os.path.join(results_folder, 'learning curve_Entropy')) # uncertainty
 
         # uncertainty evaluation
         etp = entropys[-1]
@@ -178,5 +179,6 @@ if __name__ == '__main__':
     argparser.add_argument('--thd', type=float, help='threshold for uncertainty evaluation', default=0.1)
     argparser.add_argument('--min', action='store_true', help='whether use minimum uncertainty as the threshold or not')
     argparser.add_argument('--workdir', type=str, help='cuda device or cpu', default='mnist_s9d3s2000_c256r20+10e20s20')
+    argparser.add_argument('--plot', action='store_true', help='plot learning curves or not')
     args = argparser.parse_args()
     main(args)
